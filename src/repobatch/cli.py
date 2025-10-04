@@ -206,6 +206,10 @@ def run(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    max_workers: Annotated[
+        int | None,
+        typer.Option("--max-workers", "-j", help="Run in parallel with N workers"),
+    ] = None,
 ) -> None:
     """Run a command in multiple projects."""
     projects = _get_filtered_projects(
@@ -220,7 +224,14 @@ def run(
         f"[bold]Running command in {len(projects)} projects:[/bold] {command}\n"
     )
 
-    result = run_batch(projects, command, timeout=timeout)
+    parallel = max_workers is not None
+    result = run_batch(
+        projects,
+        command,
+        timeout=timeout,
+        parallel=parallel,
+        max_workers=max_workers or 4,
+    )
 
     # Show results
     for cmd_result in result.results:
@@ -359,6 +370,10 @@ def test(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    max_workers: Annotated[
+        int | None,
+        typer.Option("--max-workers", "-j", help="Run tests in parallel with N workers"),
+    ] = None,
 ) -> None:
     """Run tests across multiple projects."""
     # Look for projects with pytest
@@ -373,7 +388,14 @@ def test(
     console.print(f"[bold]Running tests in {len(projects)} projects[/bold]\n")
 
     # Try pytest first, fall back to python -m pytest
-    result = run_batch(projects, "pytest", timeout=timeout)
+    parallel = max_workers is not None
+    result = run_batch(
+        projects,
+        "pytest",
+        timeout=timeout,
+        parallel=parallel,
+        max_workers=max_workers or 4,
+    )
 
     # Show results
     for cmd_result in result.results:
