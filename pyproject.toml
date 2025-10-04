@@ -41,6 +41,9 @@ dependencies = [
   # Only add below (Copier)
 ]
 
+[project.scripts]
+repobatch = "repobatch.cli:app"
+
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
 
