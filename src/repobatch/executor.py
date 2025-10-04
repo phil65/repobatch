@@ -6,11 +6,13 @@ import asyncio
 import subprocess
 from typing import TYPE_CHECKING
 
-from repobatch.models import BatchResult, CommandResult, Project
+from repobatch.models import BatchResult, CommandResult
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from repobatch.models import Project
 
 
 def run_command(
@@ -60,7 +62,7 @@ def run_command(
             error=f"Command timed out after {timeout} seconds",
             exit_code=-1,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return CommandResult(
             project=project,
             success=False,
@@ -185,7 +187,7 @@ async def _run_command_async(
                 exit_code=-1,
             )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return CommandResult(
             project=project,
             success=False,
@@ -285,5 +287,5 @@ def read_file_from_project(project: Project, file_path: str) -> str | None:
 
     try:
         return full_path.read_text()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None

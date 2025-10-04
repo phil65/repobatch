@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from pathlib import Path
 
 
 @dataclass
@@ -96,7 +96,7 @@ class Project:
 
         return version, template
 
-    def matches_filters(
+    def matches_filters(  # noqa: PLR0911
         self,
         *,
         python_only: bool = False,
