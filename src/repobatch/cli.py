@@ -54,9 +54,10 @@ def _get_filtered_projects(
     git: bool,
     name: str | None,
     has_file: str | None,
+    max_depth: int = 2,
 ) -> list[Project]:
     """Get projects filtered by given criteria."""
-    projects = discover_projects(root)
+    projects = discover_projects(root, max_depth=max_depth)
 
     return [
         p
@@ -91,10 +92,13 @@ def list(
     has_file: Annotated[
         str | None, typer.Option("--has-file", help="Only projects with this file")
     ] = None,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """List all discovered projects."""
     projects = _get_filtered_projects(
-        root, python, non_python, copier, git, name, has_file
+        root, python, non_python, copier, git, name, has_file, max_depth
     )
 
     if not projects:
@@ -106,12 +110,22 @@ def list(
     table.add_column("Path", style="dim")
     table.add_column("Type", style="green")
     table.add_column("Git", justify="center")
-    table.add_column("Copier", justify="center")
+    table.add_column("Copier", justify="center", style="blue")
+    table.add_column("Template", style="yellow")
 
     for project in sorted(projects, key=lambda p: p.name):
         proj_type = "Python" if project.is_python else "Other"
-        git_status = "✓" if project.is_git else "✗"
-        copier_status = "✓" if project.has_copier else "✗"
+
+        # Git status with dirty/clean indication
+        if not project.is_git:
+            git_status = "✗"
+        elif git_has_changes(project):
+            git_status = "🚧"  # Under construction - dirty
+        else:
+            git_status = "✅"  # Clean
+
+        copier_status = project.copier_version or "✗" if project.has_copier else "✗"
+        template = project.copier_template or "-" if project.has_copier else "-"
 
         table.add_row(
             project.name,
@@ -119,6 +133,7 @@ def list(
             proj_type,
             git_status,
             copier_status,
+            template,
         )
 
     console.print(table)
@@ -131,9 +146,14 @@ def versions(
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Show copier template versions across projects."""
-    projects = _get_filtered_projects(root, False, False, True, False, name, None)
+    projects = _get_filtered_projects(
+        root, False, False, True, False, name, None, max_depth
+    )
 
     if not projects:
         console.print("[yellow]No copier-managed projects found[/yellow]")
@@ -183,10 +203,13 @@ def run(
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Show command output")
     ] = False,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Run a command in multiple projects."""
     projects = _get_filtered_projects(
-        root, python, non_python, copier, git, name, has_file
+        root, python, non_python, copier, git, name, has_file, max_depth
     )
 
     if not projects:
@@ -235,9 +258,14 @@ def status(
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Show git status across projects."""
-    projects = _get_filtered_projects(root, python, False, False, True, name, None)
+    projects = _get_filtered_projects(
+        root, python, False, False, True, name, None, max_depth
+    )
 
     if not projects:
         console.print("[yellow]No git repositories found[/yellow]")
@@ -285,9 +313,14 @@ def show(
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Show a specific file across multiple projects."""
-    projects = _get_filtered_projects(root, python, False, copier, False, name, file_path)
+    projects = _get_filtered_projects(
+        root, python, False, copier, False, name, file_path, max_depth
+    )
 
     if not projects:
         console.print(f"[yellow]No projects found with file: {file_path}[/yellow]")
@@ -323,11 +356,14 @@ def test(
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Show test output")
     ] = False,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Run tests across multiple projects."""
     # Look for projects with pytest
     projects = _get_filtered_projects(
-        root, python, False, False, False, name, "pyproject.toml"
+        root, python, False, False, False, name, "pyproject.toml", max_depth
     )
 
     if not projects:
@@ -377,9 +413,14 @@ def update(
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Show what would be done without doing it")
     ] = False,
+    max_depth: Annotated[
+        int, typer.Option("--max-depth", help="Maximum directory depth to search")
+    ] = 1,
 ) -> None:
     """Update all copier-managed projects."""
-    projects = _get_filtered_projects(root, False, False, True, False, name, None)
+    projects = _get_filtered_projects(
+        root, False, False, True, False, name, None, max_depth
+    )
 
     if not projects:
         console.print("[yellow]No copier-managed projects found[/yellow]")
