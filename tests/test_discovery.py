@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from repobatch.discovery import (
     _is_project_root,
@@ -12,6 +12,10 @@ from repobatch.discovery import (
     find_python_projects,
 )
 from repobatch.models import Project
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_is_project_root_with_git(tmp_path: Path) -> None:
@@ -127,7 +131,7 @@ def test_discover_projects(tmp_path: Path) -> None:
 
     projects = discover_projects(tmp_path)
 
-    assert len(projects) == 2
+    assert len(projects) == 2  # noqa: PLR2004
     project_names = {p.name for p in projects}
     assert "project1" in project_names
     assert "project2" in project_names
