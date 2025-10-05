@@ -103,6 +103,7 @@ class Project:
         non_python_only: bool = False,
         copier_only: bool = False,
         git_only: bool = False,
+        dirty_only: bool = False,
         name_pattern: str | None = None,
         has_file: str | None = None,
     ) -> bool:
@@ -113,6 +114,7 @@ class Project:
             non_python_only: Only match non-Python projects
             copier_only: Only match copier-managed projects
             git_only: Only match git repositories
+            dirty_only: Only match git repositories with uncommitted changes
             name_pattern: Pattern to match project name against
             has_file: File that must exist in project
 
@@ -126,6 +128,8 @@ class Project:
         if copier_only and not self.has_copier:
             return False
         if git_only and not self.is_git:
+            return False
+        if dirty_only and not self._has_git_changes():
             return False
 
         if name_pattern:
@@ -142,6 +146,20 @@ class Project:
                 return False
 
         return True
+
+    def _has_git_changes(self) -> bool:
+        """Check if project has uncommitted git changes.
+
+        Returns:
+            True if there are uncommitted changes, False otherwise
+        """
+        if not self.is_git:
+            return False
+
+        # Import here to avoid circular import
+        from repobatch.executor import git_has_changes
+
+        return git_has_changes(self)
 
 
 @dataclass

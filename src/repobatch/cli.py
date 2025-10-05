@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from rich.console import Console
 from rich.table import Table
@@ -18,7 +18,10 @@ from repobatch.executor import (
     run_batch,
     run_command,
 )
-from repobatch.models import Project
+
+
+if TYPE_CHECKING:
+    from repobatch.models import Project
 
 
 app = typer.Typer(
@@ -33,7 +36,7 @@ def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
         console.print(f"repobatch version: {__version__}")
-        raise typer.Exit()
+        raise typer.Exit
 
 
 @app.callback()
@@ -52,6 +55,7 @@ def _get_filtered_projects(
     non_python: bool,
     copier: bool,
     git: bool,
+    dirty: bool,
     name: str | None,
     has_file: str | None,
     max_depth: int = 2,
@@ -67,15 +71,19 @@ def _get_filtered_projects(
             non_python_only=non_python,
             copier_only=copier,
             git_only=git,
+            dirty_only=dirty,
             name_pattern=name,
             has_file=has_file,
         )
     ]
 
 
-@app.command()
-def list(
-    root: Annotated[Path, typer.Argument(help="Root directory to search")] = Path.cwd(),
+CWD = Path.cwd()
+
+
+@app.command(name="list")
+def list_projects(
+    root: Annotated[Path, typer.Argument(help="Root directory to search")] = CWD,
     python: Annotated[
         bool, typer.Option("--python", help="Only Python projects")
     ] = False,
@@ -86,6 +94,9 @@ def list(
         bool, typer.Option("--copier", help="Only copier-managed projects")
     ] = False,
     git: Annotated[bool, typer.Option("--git", help="Only git repositories")] = False,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
+    ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
@@ -98,7 +109,7 @@ def list(
 ) -> None:
     """List all discovered projects."""
     projects = _get_filtered_projects(
-        root, python, non_python, copier, git, name, has_file, max_depth
+        root, python, non_python, copier, git, dirty, name, has_file, max_depth
     )
 
     if not projects:
@@ -142,7 +153,10 @@ def list(
 
 @app.command()
 def versions(
-    root: Annotated[Path, typer.Argument(help="Root directory to search")] = Path.cwd(),
+    root: Annotated[Path, typer.Argument(help="Root directory to search")] = CWD,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
+    ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
@@ -152,7 +166,7 @@ def versions(
 ) -> None:
     """Show copier template versions across projects."""
     projects = _get_filtered_projects(
-        root, False, False, True, False, name, None, max_depth
+        root, False, False, True, False, dirty, name, None, max_depth
     )
 
     if not projects:
@@ -178,9 +192,7 @@ def versions(
 @app.command()
 def run(
     command: Annotated[str, typer.Argument(help="Command to run")],
-    root: Annotated[
-        Path, typer.Option("--root", help="Root directory to search")
-    ] = Path.cwd(),
+    root: Annotated[Path, typer.Option("--root", help="Root directory to search")] = CWD,
     python: Annotated[
         bool, typer.Option("--python", help="Only Python projects")
     ] = False,
@@ -191,6 +203,9 @@ def run(
         bool, typer.Option("--copier", help="Only copier-managed projects")
     ] = False,
     git: Annotated[bool, typer.Option("--git", help="Only git repositories")] = False,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
+    ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
@@ -213,7 +228,7 @@ def run(
 ) -> None:
     """Run a command in multiple projects."""
     projects = _get_filtered_projects(
-        root, python, non_python, copier, git, name, has_file, max_depth
+        root, python, non_python, copier, git, dirty, name, has_file, max_depth
     )
 
     if not projects:
@@ -259,9 +274,9 @@ def run(
 
 @app.command()
 def status(
-    root: Annotated[Path, typer.Argument(help="Root directory to search")] = Path.cwd(),
-    uncommitted: Annotated[
-        bool, typer.Option("--uncommitted", help="Only show projects with changes")
+    root: Annotated[Path, typer.Argument(help="Root directory to search")] = CWD,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only show projects with changes")
     ] = False,
     python: Annotated[
         bool, typer.Option("--python", help="Only Python projects")
@@ -275,7 +290,7 @@ def status(
 ) -> None:
     """Show git status across projects."""
     projects = _get_filtered_projects(
-        root, python, False, False, True, name, None, max_depth
+        root, python, False, False, True, dirty, name, None, max_depth
     )
 
     if not projects:
@@ -291,7 +306,7 @@ def status(
     for project in sorted(projects, key=lambda p: p.name):
         has_changes = git_has_changes(project)
 
-        if uncommitted and not has_changes:
+        if dirty and not has_changes:
             continue
 
         status_text = "Modified" if has_changes else "Clean"
@@ -312,14 +327,15 @@ def status(
 @app.command()
 def show(
     file_path: Annotated[str, typer.Argument(help="Relative file path to show")],
-    root: Annotated[
-        Path, typer.Option("--root", help="Root directory to search")
-    ] = Path.cwd(),
+    root: Annotated[Path, typer.Option("--root", help="Root directory to search")] = CWD,
     python: Annotated[
         bool, typer.Option("--python", help="Only Python projects")
     ] = False,
     copier: Annotated[
         bool, typer.Option("--copier", help="Only copier-managed projects")
+    ] = False,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
     ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
@@ -330,7 +346,7 @@ def show(
 ) -> None:
     """Show a specific file across multiple projects."""
     projects = _get_filtered_projects(
-        root, python, False, copier, False, name, file_path, max_depth
+        root, python, False, copier, False, dirty, name, file_path, max_depth
     )
 
     if not projects:
@@ -352,12 +368,13 @@ def show(
             console.print()
 
 
-@app.command()
-def test(
-    root: Annotated[
-        Path, typer.Option("--root", help="Root directory to search")
-    ] = Path.cwd(),
+@app.command(name="test")
+def run_tests(
+    root: Annotated[Path, typer.Option("--root", help="Root directory to search")] = CWD,
     python: Annotated[bool, typer.Option("--python", help="Only Python projects")] = True,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
+    ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
@@ -378,7 +395,7 @@ def test(
     """Run tests across multiple projects."""
     # Look for projects with pytest
     projects = _get_filtered_projects(
-        root, python, False, False, False, name, "pyproject.toml", max_depth
+        root, python, False, False, False, dirty, name, "pyproject.toml", max_depth
     )
 
     if not projects:
@@ -426,9 +443,10 @@ def test(
 
 @app.command()
 def update(
-    root: Annotated[
-        Path, typer.Option("--root", help="Root directory to search")
-    ] = Path.cwd(),
+    root: Annotated[Path, typer.Option("--root", help="Root directory to search")] = CWD,
+    dirty: Annotated[
+        bool, typer.Option("--dirty", help="Only projects with uncommitted changes")
+    ] = False,
     name: Annotated[
         str | None, typer.Option("--name", help="Filter by name pattern")
     ] = None,
@@ -441,7 +459,7 @@ def update(
 ) -> None:
     """Update all copier-managed projects."""
     projects = _get_filtered_projects(
-        root, False, False, True, False, name, None, max_depth
+        root, False, False, True, False, dirty, name, None, max_depth
     )
 
     if not projects:
