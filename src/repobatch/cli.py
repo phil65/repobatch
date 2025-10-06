@@ -116,16 +116,16 @@ def list_projects(
 ) -> None:
     """List all discovered projects."""
     projects = _get_filtered_projects(
-        root,
-        python,
-        non_python,
-        copier,
-        git,
-        dirty,
-        name,
-        has_file,
-        max_depth,
-        include_self,
+        root=root,
+        python=python,
+        non_python=non_python,
+        copier=copier,
+        git=git,
+        dirty=dirty,
+        name=name,
+        has_file=has_file,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -179,10 +179,22 @@ def versions(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    include_self: Annotated[
+        bool, typer.Option("--include-self", help="Include repobatch project itself")
+    ] = False,
 ) -> None:
     """Show copier template versions across projects."""
     projects = _get_filtered_projects(
-        root, False, False, True, False, dirty, name, None, max_depth, False
+        root=root,
+        python=False,
+        non_python=False,
+        copier=True,
+        git=False,
+        dirty=dirty,
+        name=name,
+        has_file=None,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -247,16 +259,16 @@ def run(
 ) -> None:
     """Run a command in multiple projects."""
     projects = _get_filtered_projects(
-        root,
-        python,
-        non_python,
-        copier,
-        git,
-        dirty,
-        name,
-        has_file,
-        max_depth,
-        include_self,
+        root=root,
+        python=python,
+        non_python=non_python,
+        copier=copier,
+        git=git,
+        dirty=dirty,
+        name=name,
+        has_file=has_file,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -315,10 +327,22 @@ def status(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    include_self: Annotated[
+        bool, typer.Option("--include-self", help="Include repobatch project itself")
+    ] = False,
 ) -> None:
     """Show git status across projects."""
     projects = _get_filtered_projects(
-        root, python, False, False, True, dirty, name, None, max_depth, False
+        root=root,
+        python=python,
+        non_python=False,
+        copier=False,
+        git=True,
+        dirty=dirty,
+        name=name,
+        has_file=None,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -354,7 +378,7 @@ def status(
 
 @app.command()
 def show(
-    file_path: Annotated[str, typer.Argument(help="Relative file path to show")],
+    file_path: Annotated[str, typer.Argument(help="File path to show")],
     root: Annotated[Path, typer.Option("--root", help="Root directory to search")] = CWD,
     python: Annotated[
         bool, typer.Option("--python", help="Only Python projects")
@@ -371,10 +395,22 @@ def show(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    include_self: Annotated[
+        bool, typer.Option("--include-self", help="Include repobatch project itself")
+    ] = False,
 ) -> None:
     """Show a specific file across multiple projects."""
     projects = _get_filtered_projects(
-        root, python, False, copier, False, dirty, name, file_path, max_depth, False
+        root=root,
+        python=python,
+        non_python=False,
+        copier=copier,
+        git=False,
+        dirty=dirty,
+        name=name,
+        has_file=file_path,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -408,10 +444,7 @@ def run_tests(
     ] = None,
     timeout: Annotated[
         int, typer.Option("--timeout", help="Test timeout in seconds")
-    ] = 600,
-    verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Show test output")
-    ] = False,
+    ] = 300,
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
@@ -419,11 +452,23 @@ def run_tests(
         int | None,
         typer.Option("--max-workers", "-j", help="Run tests in parallel with N workers"),
     ] = None,
+    include_self: Annotated[
+        bool, typer.Option("--include-self", help="Include repobatch project itself")
+    ] = False,
 ) -> None:
     """Run tests across multiple projects."""
     # Look for projects with pytest
     projects = _get_filtered_projects(
-        root, python, False, False, False, dirty, name, "pyproject.toml", max_depth, False
+        root=root,
+        python=python,
+        non_python=False,
+        copier=False,
+        git=False,
+        dirty=dirty,
+        name=name,
+        has_file="pyproject.toml",
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
@@ -498,7 +543,16 @@ def update(
 ) -> None:
     """Update all copier-managed projects."""
     projects = _get_filtered_projects(
-        root, False, False, True, False, dirty, name, None, max_depth, include_self
+        root=root,
+        python=False,
+        non_python=False,
+        copier=True,
+        git=False,
+        dirty=dirty,
+        name=name,
+        has_file=None,
+        max_depth=max_depth,
+        include_self=include_self,
     )
 
     if not projects:
