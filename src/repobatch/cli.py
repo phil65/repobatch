@@ -457,6 +457,10 @@ def update(
         bool,
         typer.Option("--commit", help="Commit template changes after successful update"),
     ] = False,
+    no_verify: Annotated[
+        bool,
+        typer.Option("--no-verify", help="Bypass commit hooks when committing"),
+    ] = False,
 ) -> None:
     """Update all copier-managed projects."""
     projects = _get_filtered_projects(
@@ -482,7 +486,8 @@ def update(
         if dry_run:
             console.print("[dim]Would update this project[/dim]")
             if commit:
-                console.print("[dim]Would commit template changes[/dim]")
+                commit_flags = " --no-verify" if no_verify else ""
+                console.print(f"[dim]Would commit template changes{commit_flags}[/dim]")
             continue
 
         # Store original version for commit message
@@ -550,9 +555,10 @@ def update(
 
                     add_result = run_command(project, ["git", "add", "-A"], shell=False)
                     if add_result.success:
-                        commit_result = run_command(
-                            project, ["git", "commit", "-m", commit_msg], shell=False
-                        )
+                        commit_cmd = ["git", "commit", "-m", commit_msg]
+                        if no_verify:
+                            commit_cmd.append("--no-verify")
+                        commit_result = run_command(project, commit_cmd, shell=False)
                         if commit_result.success:
                             console.print("[green]✓ Template changes committed[/green]")
                         else:
