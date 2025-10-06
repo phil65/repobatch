@@ -492,10 +492,13 @@ def update(
         bool,
         typer.Option("--no-verify", help="Bypass commit hooks when committing"),
     ] = False,
+    include_self: Annotated[
+        bool, typer.Option("--include-self", help="Include repobatch project itself")
+    ] = False,
 ) -> None:
     """Update all copier-managed projects."""
     projects = _get_filtered_projects(
-        root, False, False, True, False, dirty, name, None, max_depth, False
+        root, False, False, True, False, dirty, name, None, max_depth, include_self
     )
 
     if not projects:
