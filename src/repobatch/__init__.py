@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version  # Python < 3.8
+
+try:
+    __version__ = version("repobatch")
+except Exception:
+    __version__ = "unknown"
 
 from repobatch.discovery import (
     discover_projects,

@@ -1,8 +1,9 @@
 [project]
 name = "repobatch"
-description = "CLI project manager for batch operations"
+version = "0.1.0"
+description = "Batch operations manager for multiple projects"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [
   { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
@@ -26,10 +27,11 @@ dependencies = [
   "gitpython>=3.1.0",
   "pyyaml>=6.0",
   "rich>=13.0.0",
-  "typer>=0.12.0",
+  "tomli>=2.0.0; python_version < '3.11'",
+  "tomli-w>=1.0.0",
+  "typer>=0.9.0",
   # Only add below (Copier)
 ]
-dynamic = ["version"]
 
 [project.urls]
 "Code coverage" = "https://app.codecov.io/gh/phil65/repobatch"
@@ -63,7 +65,7 @@ lint = [
 ]
 
 [build-system]
-requires = ["hatch-regex-commit", "hatchling"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.coverage.report]
@@ -74,11 +76,6 @@ exclude_lines = [
   "except ImportError",
   'if __name__ == "__main__":',
 ]
-
-[tool.hatch.version]
-source = "regex_commit"
-commit_extra_args = ["-e"]
-path = "src/repobatch/__init__.py"
 
 [tool.mknodes]
 allowed-commit-types = [
