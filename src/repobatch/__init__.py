@@ -1,4 +1,7 @@
-"""RepoBatch: CLI project manager for batch operations"""
+"""RepoBatch: main package.
+
+CLI project manager for batch operations.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +9,7 @@ from importlib.metadata import version
 
 __version__ = version("repobatch")
 __title__ = "RepoBatch"
-__description__ = "CLI project manager for batch operations"
+
 __author__ = "Philipp Temminghoff"
 __author_email__ = "philipptemminghoff@googlemail.com"
 __copyright__ = "Copyright (c) 2025 Philipp Temminghoff"
