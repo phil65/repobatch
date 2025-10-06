@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from rich.console import Console
 from rich.table import Table
@@ -18,10 +18,7 @@ from repobatch.executor import (
     run_batch,
     run_command,
 )
-
-
-if TYPE_CHECKING:
-    from repobatch.models import Project
+from repobatch.models import Project
 
 
 app = typer.Typer(
@@ -456,6 +453,10 @@ def update(
     max_depth: Annotated[
         int, typer.Option("--max-depth", help="Maximum directory depth to search")
     ] = 1,
+    commit: Annotated[
+        bool,
+        typer.Option("--commit", help="Commit template changes after successful update"),
+    ] = False,
 ) -> None:
     """Update all copier-managed projects."""
     projects = _get_filtered_projects(
@@ -480,7 +481,12 @@ def update(
 
         if dry_run:
             console.print("[dim]Would update this project[/dim]")
+            if commit:
+                console.print("[dim]Would commit template changes[/dim]")
             continue
+
+        # Store original version for commit message
+        old_version = project.copier_version
 
         # Check if it's a git repository
         if not project.is_git:
@@ -529,17 +535,46 @@ def update(
                 console.print("[red]✗ Merge conflicts detected[/red]")
                 problem_projects.append((project, "merge conflicts"))
                 console.print("⚠ Leaving stash intact, please resolve conflicts manually")
-            # No conflicts, unstash if we stashed
-            elif stashed:
-                console.print("📤 Unstashing changes...")
-                unstash_result = run_command(
-                    project, ["git", "stash", "pop"], shell=False
-                )
-                if unstash_result.success:
-                    console.print("[green]✓ Changes unstashed successfully[/green]")
-                else:
-                    console.print("[red]✗ Failed to unstash changes[/red]")
-                    problem_projects.append((project, "unstash failed"))
+            # No conflicts, commit if requested, then unstash
+            else:
+                # Commit template changes if requested
+                if commit:
+                    console.print("📝 Committing template changes...")
+                    # Get new version for commit message by re-reading project info
+                    updated_project = Project.from_path(project.path)
+                    new_version = updated_project.copier_version or "unknown"
+
+                    commit_msg = (
+                        f"chore: bump copier template from {old_version} to {new_version}"
+                    )
+
+                    add_result = run_command(project, ["git", "add", "-A"], shell=False)
+                    if add_result.success:
+                        commit_result = run_command(
+                            project, ["git", "commit", "-m", commit_msg], shell=False
+                        )
+                        if commit_result.success:
+                            console.print("[green]✓ Template changes committed[/green]")
+                        else:
+                            console.print(
+                                "[red]✗ Failed to commit template changes[/red]"
+                            )
+                            problem_projects.append((project, "commit failed"))
+                    else:
+                        console.print("[red]✗ Failed to stage template changes[/red]")
+                        problem_projects.append((project, "git add failed"))
+
+                # Unstash if we stashed
+                if stashed:
+                    console.print("📤 Unstashing changes...")
+                    unstash_result = run_command(
+                        project, ["git", "stash", "pop"], shell=False
+                    )
+                    if unstash_result.success:
+                        console.print("[green]✓ Changes unstashed successfully[/green]")
+                    else:
+                        console.print("[red]✗ Failed to unstash changes[/red]")
+                        problem_projects.append((project, "unstash failed"))
         else:
             console.print("[red]✗ Copier update failed[/red]")
             if result.error:
