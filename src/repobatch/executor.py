@@ -286,6 +286,6 @@ def read_file_from_project(project: Project, file_path: str) -> str | None:
         return None
 
     try:
-        return full_path.read_text()
+        return full_path.read_text("utf-8")
     except Exception:  # noqa: BLE001
         return None
