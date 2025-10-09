@@ -3,8 +3,9 @@ name = "repobatch"
 version = "0.1.0"
 description = "Batch operations manager for multiple projects"
 readme = "README.md"
-requires-python = ">=3.12"
-license = { file = "LICENSE" }
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Philipp Temminghoff", email = "philipptemminghoff@googlemail.com" },
 ]
@@ -121,6 +122,7 @@ log_cli = true
 log_date_format = "%Y-%m-%d %H:%M:%S"
 log_format = "%(asctime)s %(levelname)s %(message)s"
 testpaths = "tests/"
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 90
@@ -235,13 +237,14 @@ runtime-evaluated-base-classes = [
   "pydantic.BaseModel",
   "sqlalchemy.orm.DeclarativeBase",
   "schemez.Schema",
+  "sqlmodel.SQLModel",
 ]
 runtime-evaluated-decorators = [
   "pydantic.validate_call",
-  "attrs.define",
   "fastapi.FastAPI.get",
   "fastapi.FastAPI.post",
   "fastmcp.FastMCP.tool",
+  "typer.Typer.command",
 ]
 
 [tool.ruff.lint.isort]
@@ -254,13 +257,14 @@ combine-as-imports = true
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
+"*tests/*" = ["D100"]
 
 [tool.ruff.format]
-# Enable preview style formatting.
 preview = true
 
 [tool.ty.environment]
 python-version = "3.13"
+python-platform = "all"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
